@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
-import factorytown.webscraper.buildings_page
+import sys
 
-print("I'm a factory town!")
+from factorytown.cli.cli import run
+
+rc = run()
+sys.exit(rc)

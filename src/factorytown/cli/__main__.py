@@ -2,7 +2,7 @@
 
 import sys
 
-from .cli import run
+from factorytown.cli.cli import run
 
 rc = run()
 sys.exit(rc)
