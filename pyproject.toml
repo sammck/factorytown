@@ -22,3 +22,9 @@ build-backend = "pdm.backend"
 
 [tool.pdm]
 distribution = true
+
+[tool.pdm.scripts]
+factorytown = {call = "factorytown.cli.cli:run"}
+
+[project.scripts]
+factorytown = "factorytown.cli.cli:run"
