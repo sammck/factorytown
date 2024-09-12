@@ -10,6 +10,17 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "factorytown CLI test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "factorytown",
+            "args": [
+                "test"
+            ],
+
         }
+
     ]
 }

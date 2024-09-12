@@ -65,9 +65,30 @@ class CommandHandler:
         print("Error: A command is required\n", file=sys.stderr)
         self._args.subparser.print_help(sys.stderr)
         return 1
+    
+    def cmd_get_md(self) -> int:
+        from ..scrape import get_page_markdown
+        page_name: str = self._args.page_name
+        force: bool = self._args.force, bool
+        md = get_page_markdown(page_name, force)
+        print(md, end='')
+        return 0
+    
+    def cmd_get_html(self) -> int:
+        from ..scrape import get_page_html
+        page_name: str = self._args.page_name
+        force: bool = self._args.force, bool
+        html = get_page_html(page_name, force)
+        print(html, end='')
+        return 0
 
     def cmd_version(self) -> int:
         print(pkg_version)
+        return 0
+    
+    def cmd_test(self) -> int:
+        from ..test import do_test
+        do_test()
         return 0
 
     def run(self) -> int:
@@ -115,6 +136,32 @@ class CommandHandler:
                             help="The build target to build. Default: hub")
         sp.set_defaults(func=self.cmd_build, subparser=sp)
         """
+
+        # ======================= get-md
+
+        sp = subparsers.add_parser('get-md',
+                                description='''fetch the wkitext markdown for a Factory Town wki page.''')
+        sp.add_argument("--force", "-f", action="store_true",
+                            help="Force refreesh of cache")
+        sp.add_argument("page_name",
+                            help="The Wiki page name")
+        sp.set_defaults(func=self.cmd_get_md, subparser=sp)
+
+        # ======================= get-html
+
+        sp = subparsers.add_parser('get-html',
+                                description='''fetch the HTML for a Factory Town wki page.''')
+        sp.add_argument("--force", "-f", action="store_true",
+                            help="Force refreesh of cache")
+        sp.add_argument("page_name",
+                            help="The Wiki page name")
+        sp.set_defaults(func=self.cmd_get_html, subparser=sp)
+
+        # ======================= test
+
+        sp = subparsers.add_parser('test',
+                                description='''Run a temporary test command.''')
+        sp.set_defaults(func=self.cmd_test, subparser=sp)
 
         # ======================= version
 

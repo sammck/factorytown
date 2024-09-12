@@ -47,6 +47,9 @@ else:
 JsonableDict = Dict[str, Jsonable]
 """A type hint for a simple JSON-serializable dict; i.e., Dict[str, Jsonable]"""
 
+JsonableList = List[Jsonable]
+"""A type hint for a simple JSON-serializable list; i.e., List[Jsonable]"""
+
 class FactoryTownError(Exception):
     """
     Base class for exceptions in this module
