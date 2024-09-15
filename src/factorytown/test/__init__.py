@@ -1,6 +1,6 @@
 from ..internal_types import *
 
-from ..scrape import get_page_html, get_page_markdown
+from ..raw_scrape import get_page_html, get_page_markdown
 import wikitextparser as wtp
 import json
 

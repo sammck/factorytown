@@ -14,7 +14,8 @@ from typing import (
     Dict, List, Optional, Union, Any, TypeVar, Tuple, overload,
     Callable, Iterable, Iterator, Generator, cast, TYPE_CHECKING,
     Mapping, MutableMapping, ParamSpec, Concatenate, Sequence, MutableSequence, Set, AbstractSet, MutableSet,
-    KeysView, ValuesView, ItemsView, Literal, IO, Generic, Type, Self
+    KeysView, ValuesView, ItemsView, Literal, IO, Generic, Type, Self,
+    NamedTuple,
   )
 
 if TYPE_CHECKING:
@@ -55,3 +56,13 @@ class FactoryTownError(Exception):
     Base class for exceptions in this module
     """
     pass
+
+class UnsetType:
+    def __str__(self):
+        return "UNSET"
+      
+    def __repr__(self):
+        return str(self)
+  
+UNSET = UnsetType()
+

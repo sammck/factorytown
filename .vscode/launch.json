@@ -17,6 +17,9 @@
             "request": "launch",
             "module": "factorytown",
             "args": [
+                "--tb",
+                "--log-level",
+                "debug",
                 "test"
             ],
 

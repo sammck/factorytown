@@ -22,6 +22,9 @@ from ..common import *
 from ..version import __version__
 from ..proj_dir import get_project_dir
 from ..version import __version__ as pkg_version
+from ..model_scrape import (
+    scrape_model, FactoryTownModel
+)
 
 PROGNAME = "factorytown"
 
@@ -67,7 +70,7 @@ class CommandHandler:
         return 1
     
     def cmd_get_md(self) -> int:
-        from ..scrape import get_page_markdown
+        from ..raw_scrape import get_page_markdown
         page_name: str = self._args.page_name
         force: bool = self._args.force, bool
         md = get_page_markdown(page_name, force)
@@ -75,11 +78,18 @@ class CommandHandler:
         return 0
     
     def cmd_get_html(self) -> int:
-        from ..scrape import get_page_html
+        from ..raw_scrape import get_page_html
         page_name: str = self._args.page_name
         force: bool = self._args.force, bool
         html = get_page_html(page_name, force)
         print(html, end='')
+        return 0
+
+    def cmd_scrape(self) -> int:
+        from ..model_scrape import scrape_model, FactoryTownModel
+        force: bool = self._args.force, bool
+        model = scrape_model(force=force)
+        print(model)
         return 0
 
     def cmd_version(self) -> int:
@@ -88,8 +98,9 @@ class CommandHandler:
     
     def cmd_test(self) -> int:
         from ..test import do_test
-        do_test()
-        return 0
+        #do_test()
+        #return 0
+        return self.cmd_scrape()
 
     def run(self) -> int:
         """Run the command-line tool with provided arguments
@@ -125,24 +136,12 @@ class CommandHandler:
                             description='Valid commands',
                             help=f'Additional help available with "{PROGNAME} <command-name> -h"')
 
-        """
-        # ======================= build
-
-        sp = subparsers.add_parser('build',
-                                description='''Build artifacts required to run the hub stacks.''')
-        sp.add_argument("--force", "-f", action="store_true",
-                            help="Force clean build")
-        sp.add_argument("target", nargs='?', default="hub", choices=["hub", "traefik", "portainer"],
-                            help="The build target to build. Default: hub")
-        sp.set_defaults(func=self.cmd_build, subparser=sp)
-        """
-
         # ======================= get-md
 
         sp = subparsers.add_parser('get-md',
                                 description='''fetch the wkitext markdown for a Factory Town wki page.''')
         sp.add_argument("--force", "-f", action="store_true",
-                            help="Force refreesh of cache")
+                            help="Force refresh of cache")
         sp.add_argument("page_name",
                             help="The Wiki page name")
         sp.set_defaults(func=self.cmd_get_md, subparser=sp)
@@ -152,15 +151,25 @@ class CommandHandler:
         sp = subparsers.add_parser('get-html',
                                 description='''fetch the HTML for a Factory Town wki page.''')
         sp.add_argument("--force", "-f", action="store_true",
-                            help="Force refreesh of cache")
+                            help="Force refresh of cache")
         sp.add_argument("page_name",
                             help="The Wiki page name")
         sp.set_defaults(func=self.cmd_get_html, subparser=sp)
+
+        # ======================= scrape
+
+        sp = subparsers.add_parser('scrape',
+                                description='''Scrape the Factory Tow wiki for the entire model.''')
+        sp.add_argument("--force", "-f", action="store_true",
+                            help="Force refresh of cache")
+        sp.set_defaults(func=self.cmd_scrape, subparser=sp)
 
         # ======================= test
 
         sp = subparsers.add_parser('test',
                                 description='''Run a temporary test command.''')
+        sp.add_argument("--force", "-f", action="store_true",
+                            help="Force refresh of cache")
         sp.set_defaults(func=self.cmd_test, subparser=sp)
 
         # ======================= version

@@ -1,6 +1,6 @@
 from ..internal_types import *
-from .game_object import GameObject
+from .registry import Record
 
-class Item(GameObject):
+class GameObject(Record):
     def __str__(self):
         return f"{self.__class__.__name__}({self.common_str()})"
