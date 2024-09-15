@@ -5,7 +5,8 @@ from ..model import (
     Building,
     Item,
     Research,
-    GridDim
+    GridDim,
+    Recipe,
 )
 
 from .util import (
@@ -18,6 +19,7 @@ from .util import (
     strip_md_template,
     strip_md_item_template,
     strip_md_icon_template,
+    parse_counted_game_object_ref_list,
 )
 
 from logging import getLogger
@@ -61,5 +63,14 @@ def scrape_buildings(model: FactoryTownModel, force: Optional[bool]=False) -> No
                 building.capacity_note = row["Capacity"].replace('<br>', '\n').strip()
             else:
                 building.capacity_note = ""
+                
+            if row.has_column("Ingredients"):
+                ingredients = parse_counted_game_object_ref_list(model.records, row["Ingredients"])
+                recipe_record_name = Recipe.create_record_name(None, name)
+                recipe = model.records.get_or_create(recipe_record_name, Recipe)
+                recipe.ingredients = ingredients
+                recipe.set_product(building, 1)
+                recipe.work_units = 0
+                building.recipe = recipe
             
             logger.debug(f"    Building: {building}")

@@ -1,7 +1,33 @@
+import re
+
 from ..internal_types import *
 from ..raw_scrape import get_page_html, get_page_markdown, get_page_asset
 from ..mdparse import parse_markdown, WikiText, Table
-from ..model import GridDim
+from ..model import GridDim, RecordRegistry, GameObject
+from ..model.recipe import CountedGameObjectRef, CountedGameObjectRefList
+
+item_count_re = re.compile(r"\s*(\d+)\s*x\s+(.*)")
+"""A pattern that indicataes a quantity followed by an item name, in the form f"{quantity}x {item_name}"."""
+
+def parse_counted_game_object_ref_list(registry: RecordRegistry, val: str) -> CountedGameObjectRefList:
+    val = val.strip()
+    result: CountedGameObjectRefList = []
+    if val != "" and not val.startswith("N/A"):
+        for counted_item in val.split("+"):
+            counted_item = counted_item.strip()
+            m = item_count_re.match(counted_item)
+            if m is None:
+                n = 1
+                item_template = counted_item
+            else:
+                n = int(m.group(1))
+                item_template = m.group(2).strip()
+            item_name = strip_md_item_template(item_template)
+            item_ref = registry.get_ref(item_name, GameObject)
+            entry = CountedGameObjectRef(item_ref, n)
+            result.append(entry)
+            
+    return result
 
 def split_md_template(val: str) -> Tuple[str, str]:
     val = val.strip()
@@ -24,6 +50,26 @@ def strip_md_icon_template(val: str) -> str:
     result = split_md_template(val)
     assert result[0] == "Icon"
     return result[1]
+
+def parse_counted_game_object_ref_list(registry: RecordRegistry, val: str) -> CountedGameObjectRefList:
+    val = val.strip()
+    result: CountedGameObjectRefList = []
+    if val != "" and not val.startswith("N/A"):
+        for counted_item in val.split("+"):
+            counted_item = counted_item.strip()
+            m = item_count_re.match(counted_item)
+            if m is None:
+                n = 1
+                item_template = counted_item
+            else:
+                n = int(m.group(1))
+                item_template = m.group(2).strip()
+            item_name = strip_md_item_template(item_template)
+            item_ref = registry.get_ref(item_name, GameObject)
+            entry = CountedGameObjectRef(item_ref, n)
+            result.append(entry)
+            
+    return result
 
 def parse_page(page: str, force: Optional[bool]=False) -> WikiText:
     return parse_markdown(get_page_markdown(page, force))

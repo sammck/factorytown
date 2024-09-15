@@ -16,9 +16,14 @@ class CountedGameObject(NamedTuple):
     
     obj: GameObject
     quantity: int
+
+    @classmethod
+    def create(cls, registry: RecordRegistry, obj_id: RecordId, quantity: int) -> "CountedGameObjectRef":
+        obj = registry.get(obj_id, GameObject)
+        return cls(obj, quantity)
     
     def __str__(self):
-        return f"CountedGameObject(obj={self.obj!r}, quantity={self.quantity})"
+        return f"{self.quantity}x {self.obj.record_name!r}"
     
     def __repr__(self):
         return str(self)
@@ -28,15 +33,23 @@ class CountedGameObjectRef(NamedTuple):
     
     obj_ref: RecordRef[GameObject]
     quantity: int
+
+    @classmethod
+    def create(cls, registry: RecordRegistry, obj_id: RecordId, quantity: int) -> "CountedGameObjectRef":
+        obj_ref = registry.get_ref(obj_id, GameObject)
+        return cls(obj_ref, quantity)
     
     def get(self) -> CountedGameObject:
         return CountedGameObject(self.obj_ref.get(), self.quantity)    
     
     def __str__(self):
-        return f"CountedGameObject(obj={self.obj_ref!r}, quantity={self.quantity})"
+        return f"{self.quantity}x {self.obj_ref.record_name!r}"
     
     def __repr__(self):
         return str(self)
+
+CountedGameObjectRefList = List[CountedGameObjectRef]
+CountedGameObjectList = List[CountedGameObject]
 
 class Recipe(Record):
     """A recipe for producing a game object from ingredients.
@@ -70,6 +83,17 @@ class Recipe(Record):
     _ingredients: List[CountedGameObject]|UnsetType = UNSET
     """Cached realized ingredients with quantities"""
     
+    _variant: Optional[str]
+    _primary_product_name: str
+    
+    def __init__(self, registry: RecordRegistry, record_name: str):
+        super().__init__(registry, record_name)
+        building_name, product_name, variant = self.parse_record_name(record_name)
+        self._primary_product_name = product_name
+        self._variant = variant
+        self.add_tag("Recipe")
+        self.building = None if building_name is None else self._registry.get_ref(building_name, Building)
+    
     @classmethod
     def create_record_name(cls, building_id: Optional[RecordId], primary_product_id: RecordId, variant: Optional[str]=None) -> str:
         building_name = "[User]" if building_id is None else get_record_name(building_id)
@@ -80,11 +104,25 @@ class Recipe(Record):
             variant_name = variant
         return f"{building_name}.{primary_product_name}.{variant_name}"
     
+    @classmethod
+    def parse_record_name(cls, record_name: str) -> Tuple[Optional[str], str, Optional[str]]:
+        building_name, product_name, variant = record_name.split(".")
+        if building_name == "[User]":
+            building_name = None
+        if variant == "default":
+            variant = None
+        return building_name, product_name, variant
+    
+    
+    @property
+    def variant(self) -> Optional[str]:
+        return self._variant
+    
     @property
     def display_name(self) -> str:
-        if self.variant == "default":
-            return self.product_name
-        return f"{self.product_name} ({self.variant})"
+        if self._variant is None:
+            return self._primary_product_name
+        return f"{self._primary_product_name} ({self._variant})"
     
     @property
     def product_refs(self) -> List[CountedGameObjectRef]:
@@ -118,22 +156,26 @@ class Recipe(Record):
             return 0
         return len(self._product_refs)
     
-    def add_product(self, obj_ref: RecordRef[GameObject], quantity: int=1):
+    def add_product(self, obj_id: RecordId, quantity: int=1):
+        obj_ref = self._registry.get_ref(obj_id, GameObject)
         if isinstance(self._product_refs, UnsetType):
             self._product_refs = []
         for product in self._product_refs:
             if product.obj_ref == obj_ref:
                 assert product.quantity == quantity
                 return
+        if len(self._product_refs) == 0:
+            assert obj_ref.record_name == self._primary_product_name
         self._product_refs.append(CountedGameObjectRef(obj_ref, quantity))
         self._products = UNSET
     
-    def set_product(self, value: RecordRef[GameObject], quantity: int=1):
+    def set_product(self, obj_id: RecordId, quantity: int=1):
         assert self.n_products <= 1
+        obj_ref = self._registry.get_ref(obj_id, GameObject)
         if self.n_products > 0:
-            assert self.product_ref == value and self.product_quantity == quantity
+            assert self.product_ref == obj_ref and self.product_quantity == quantity
         else:
-            self.add_product(value, quantity)
+            self.add_product(obj_ref, quantity)
         
     @property
     def ingredient_refs(self) -> List[CountedGameObjectRef]:
@@ -146,15 +188,22 @@ class Recipe(Record):
             self._ingredients = [ x.get() for x in self.ingredient_refs ]
         return self._ingredients
     
+    @ingredients.setter
+    def ingredients(self, value: CountedGameObjectRefList):
+        assert isinstance(self._ingredient_refs, UnsetType)
+        self._ingredient_refs = list(value)
+        self._ingredients = UNSET
+    
     @property
     def n_ingredients(self) -> int:
         if self._ingredient_refs is UNSET:
             return 0
         return len(self._ingredient_refs)
     
-    def add_ingredient(self, obj_ref: RecordRef[GameObject], quantity: int=1):
+    def add_ingredient(self, obj_id: RecordId, quantity: int=1):
         if isinstance(self._ingredient_refs, UnsetType):
             self._ingredient_refs = []
+        obj_ref = self._registry.get_ref(obj_id, GameObject)
         for ingredient in self._ingredient_refs:
             if ingredient.obj_ref == obj_ref:
                 assert ingredient.quantity == quantity
@@ -175,11 +224,10 @@ class Recipe(Record):
         return None if self._building is None else self._building.get()
     
     @building.setter
-    def building(self, value: Optional[RecordRef[Building]|str]):
-        if isinstance(value, str):
-            value = self._registry.get_ref(value, Building)
-        assert isinstance(self._building, UnsetType) or self._building == value
-        self._building = value
+    def building(self, building_id: Optional[RecordId]):
+        building_ref = None if building_id is None else self._registry.get_ref(building_id, Building)
+        assert isinstance(self._building, UnsetType) or self._building == building_ref
+        self._building = building_ref
         
     @property
     def work_units(self) -> int:
@@ -192,7 +240,10 @@ class Recipe(Record):
         self._work_units = value
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.common_str()}, display_name={self.display_name}, products={self._product_refs}, ingredients={self._ingredient_refs}, building={self._building}, work_units={self._work_units})"
-    
-    def __repr__(self):
-        return str(self)
+        return (f"{self.__class__.__name__}({self.common_str()}, "
+            f"display_name={self.display_name}, "
+            f"products={self._product_refs}, "
+            f"ingredients={self._ingredient_refs}, "
+            f"building={self._building}, "
+            f"work_units={self._work_units}, "
+            f")")

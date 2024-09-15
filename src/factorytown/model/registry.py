@@ -90,6 +90,10 @@ class RecordRef(Generic[T]):
         return self._record_name
     
     @property
+    def record_class(self) -> Type[T]:
+        return self._record_class
+    
+    @property
     def registry(self) -> 'RecordRegistry':
         return self._registry
     
@@ -119,6 +123,12 @@ class RecordRef(Generic[T]):
     
     def __str__(self):
         return f"RecordRef(class={self._record_class.__name__!r}, record_name={self._record_name!r})"
+    
+    def detail_str(self) -> str:
+        record = self.try_get()
+        if record is None:
+            return str(self)
+        return f"RecordRef({record})"
     
     def __repr__(self):
         return str(self)

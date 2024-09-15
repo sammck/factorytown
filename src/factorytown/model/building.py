@@ -5,8 +5,9 @@ from .registry import Record, RecordRef, RecordRegistry, RecordId
 from .grid_dim import GridDim
 from .research import Research
 from .recipe import Recipe
+from .game_object import GameObject
     
-class Building(Record):
+class Building(GameObject):
     _building_type: str|UnsetType = UNSET
     _grid_size: GridDim|UnsetType = UNSET
     _tech_level: int|UnsetType = UNSET
@@ -99,5 +100,6 @@ class Building(Record):
                 f"tech_level={self._tech_level}, "
                 f"research={self._research}, "
                 f"shared_inventory={self._shared_inventory}, "
-                f"capacity_note={self._capacity_note!r}"
+                f"capacity_note={self._capacity_note!r}, "
+                f"recipe={self._recipe.detail_str()}, "
                 f")")
