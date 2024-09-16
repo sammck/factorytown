@@ -113,7 +113,10 @@ class Recipe(Record):
             variant = None
         return building_name, product_name, variant
     
-    
+    @property
+    def default_image_name(self) -> str:
+        return self._primary_product_name
+     
     @property
     def variant(self) -> Optional[str]:
         return self._variant
